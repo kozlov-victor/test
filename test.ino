@@ -41,7 +41,9 @@ void setup() {
     }
     VHashTable<String> table;
     table["key1"] = "value1";
+    table["key1"] = "value1_new";
     table.put("key2","value2");
+    table.put("key2","value2_new");
     table.put("key3","value3");
     table.put("key3","value3_new");
     table.remove("key2");
