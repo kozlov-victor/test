@@ -9,7 +9,7 @@
 працюємо тільки з "пласким" json типу {string:string}
 */
 
-VHashTable<String> VJSon::parse(String source){
+VHashTable<String> VJson::parse(String source){
     bool columnAppeared = false;
     bool quouteAppeared = false;
     String currentKey = "";
@@ -52,7 +52,7 @@ VHashTable<String> VJSon::parse(String source){
     return result;
 }
 
-String VJSon::stringify(VHashTable<String> &table)
+String VJson::stringify(VHashTable<String> &table)
 {
     String result = "{";
     int cnt = 0;

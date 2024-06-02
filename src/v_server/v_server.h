@@ -11,9 +11,10 @@ private:
   String ssid;
   String password;
   WiFiServer server;
-  VArrayList<String> readLines(WiFiClient &client);
+  void readRequest(WiFiClient& client, String *method, String *url, VHashTable<String> *headers, VHashTable<String> *params);
   void parseFirstLine(String firstLine, String *method, String *url, VHashTable<String> *params);
-  void parseLines(VArrayList<String> &lines, String *method, String *url, VHashTable<String> *headers, VHashTable<String> *params);
+  void parseHeaderLine(String line,VHashTable<String> *headers);
+  void parseBody(String bodyRaw, VHashTable<String> *params);
 public:
   VServer();
   VServer(String ssid, String password, int port);

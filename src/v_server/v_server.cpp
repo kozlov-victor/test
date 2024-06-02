@@ -7,7 +7,7 @@
 #include "../v_json/v_json.h"
 #include "v_server.h"
 
-const long TIMEOUT = 500;
+const long TIMEOUT = 2000;
 
 VServer::VServer(){}
 
@@ -33,29 +33,55 @@ void VServer::setup() {
     this->server.begin();
 }
 
-VArrayList<String> VServer::readLines(WiFiClient& client) {
+void VServer::readRequest(WiFiClient& client, String *method, String *url, VHashTable<String> *headers, VHashTable<String> *params) {
     String currentLine = "";
-    VArrayList<String> lines;
+    boolean isFirstLine = true;
+    boolean isBody = false;
+    String bodyRaw;
+    int contentLengthCnt = 0;
     unsigned long lastTime = millis();
+    boolean broken = false;
     while (client.connected()) {
+        if (broken) break;
         if (millis() - lastTime > TIMEOUT) break;
-        while(client.available()){
+        while(client.available()) {
             char c = client.read();
-            Serial.print(String(c));
+            //Serial.print(String(c));
+            if (isBody) { // is body, accumulate raw body untill contentLengthCnt is lt contentLength
+                bodyRaw+=String(c);
+                contentLengthCnt++;
+                String contentLength = headers->get("Content-Length");
+                if (contentLength.length()>0) {
+                    if (contentLengthCnt==contentLength.toInt()) {
+                        broken = true;
+                        break;
+                    }
+                }
+            }
             if (c=='\r') continue;
-            if (c=='\n') {
-                lines.add(currentLine);
+            if (c=='\n') { // is new line
+                if (currentLine.length()==0) {
+                    if (*method=="GET") {
+                        broken = true;
+                        break;
+                    }
+                    isBody = true;
+                }
+                if (isFirstLine) { // first line (ie GET /index HTTP 1.1)
+                    isFirstLine = false;
+                    this->parseFirstLine(currentLine, method, url, params);
+                }
+                else if (!isBody) { // headers
+                    this->parseHeaderLine(currentLine,headers);
+                }
                 currentLine = "";
             }
-            else {
-                currentLine+=String(c);
+            else { // accumulate line
+                if (!isBody) currentLine+=String(c);
             }
         }
     }
-    if (currentLine.length()>0) {
-        lines.add(currentLine);
-    }
-    return lines;
+    this->parseBody(bodyRaw,params);
 }
 
 void VServer::parseFirstLine(String firstLine, String *method, String *url, VHashTable<String> *params) {
@@ -76,34 +102,17 @@ void VServer::parseFirstLine(String firstLine, String *method, String *url, VHas
     }
 }
 
-void VServer::parseLines(VArrayList<String> &lines, String *method, String *url, VHashTable<String> *headers, VHashTable<String> *params)
-{
-    if (lines.size()>0) {
-        this->parseFirstLine(lines.getAt(0), method, url, params);
+void VServer::parseHeaderLine(String line,VHashTable<String> *headers) {
+    VArrayList<String> pair = VStrings::splitBy(line,':');
+    if (pair.size()>=2) {
+        String val = pair.getAt(1);
+        val.trim();
+        headers->put(pair.getAt(0),val);
     }
+}
 
-    boolean isBody = false;
-    String bodyRaw = "";
-    for (size_t i = 1;i<lines.size();i++) {
-        String s = lines.getAt(i);
-        if (s.length()==0) {
-            isBody = true;
-            continue;
-        }
-        if (isBody) {
-            bodyRaw+=s;
-        }
-        else {
-            VArrayList<String> pair = VStrings::splitBy(s,':');
-            if (pair.size()>=2) {
-                String val = pair.getAt(1);
-                val.trim();
-                headers->put(pair.getAt(0),val);
-            }
-        }
-    }
-
-    VHashTable<String> body = VJSon::parse(bodyRaw);
+void VServer::parseBody(String bodyRaw, VHashTable<String> *params) {
+    VHashTable<String> body = VJson::parse(bodyRaw);
     body.forEach([&params](const String key, const String value) {
         params->put(key,value);
     });
@@ -114,14 +123,12 @@ void VServer::listenToNextClient() {
     if (!client) return;
     Serial.println("Accepted new connection");
     
-    VArrayList<String> lines = readLines(client);
-
     String method = "";
     String url = "";
     VHashTable<String> headers;
     VHashTable<String> params;
 
-    this->parseLines(lines, &method, &url, &headers, &params);
+    this->readRequest(client, &method, &url, &headers, &params);
 
     Serial.println("Disconnected");
     
@@ -130,10 +137,10 @@ void VServer::listenToNextClient() {
     client.println("Connection: close");
     client.println(); // The HTTP response starts with blank line
     //client.println("{\"done\":true}");
-    client.println(method);
-    client.println(url);
-    client.print(VJSon::stringify(params));
-    client.println(VJSon::stringify(headers));
+    //client.println(method);
+    //client.println(url);
+    client.println(VJson::stringify(params));
+    //client.println(VJSon::stringify(headers));
     client.println(); // The HTTP response ends with another blank line
     client.stop();
 }

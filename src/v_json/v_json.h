@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include "../v_hash_table/v_hash_table.h"
 
-class VJSon {
+class VJson {
 private:
     
 public:
