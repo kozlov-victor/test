@@ -7,9 +7,10 @@
 #include "../v_json/v_json.h"
 #include "v_server.h"
 
+#include "../static/static.h"
+
 const long TIMEOUT = 2000;
 
-VServer::VServer(){}
 
 VServer::VServer(String ssid, String password,int port) {
     this->ssid = ssid;
@@ -132,15 +133,27 @@ void VServer::listenToNextClient() {
 
     Serial.println("Disconnected");
     
-    client.println("HTTP/1.1 200 OK");
-    client.println("Content-type:text/json");
-    client.println("Connection: close");
-    client.println(); // The HTTP response starts with blank line
-    //client.println("{\"done\":true}");
-    //client.println(method);
-    //client.println(url);
-    client.println(VJson::stringify(params));
-    //client.println(VJSon::stringify(headers));
-    client.println(); // The HTTP response ends with another blank line
-    client.stop();
+    if (url=="/index.js") {
+        client.println("HTTP/1.1 200 OK");
+        client.println("Content-type:"+static_index_js.mime);
+        client.println("Connection: close");
+        client.println(); // The HTTP response starts with blank line
+        client.println(static_index_js.content);
+        client.println(); // The HTTP response ends with another blank line
+        client.stop();
+    }
+    else {
+        client.println("HTTP/1.1 200 OK");
+        client.println("Content-type:"+static_index_html.mime);
+        client.println("Connection: close");
+        client.println(); // The HTTP response starts with blank line
+        //client.println("{\"done\":true}");
+        //client.println(method);
+        //client.println(url);
+        //client.println(VJson::stringify(params));
+        client.println(static_index_html.content);
+        //client.println(VJSon::stringify(headers));
+        client.println(); // The HTTP response ends with another blank line
+        client.stop();
+    }
 }

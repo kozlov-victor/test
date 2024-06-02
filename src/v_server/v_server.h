@@ -16,7 +16,6 @@ private:
   void parseHeaderLine(String line,VHashTable<String> *headers);
   void parseBody(String bodyRaw, VHashTable<String> *params);
 public:
-  VServer();
   VServer(String ssid, String password, int port);
   void setup();
   void listenToNextClient();
