@@ -10,13 +10,14 @@ class VServer {
 private:
   String ssid;
   String password;
+  boolean accessPointMode;
   WiFiServer server;
   void readRequest(WiFiClient& client, String *method, String *url, VHashTable<String> *headers, VHashTable<String> *params);
   void parseFirstLine(String firstLine, String *method, String *url, VHashTable<String> *params);
   void parseHeaderLine(String line,VHashTable<String> *headers);
   void parseBody(String bodyRaw, VHashTable<String> *params);
 public:
-  VServer(String ssid, String password, int port);
+  VServer(String ssid, String password, int port, boolean accessPointMode);
   void setup();
   void listenToNextClient();
 };

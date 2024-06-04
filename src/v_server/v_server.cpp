@@ -1,10 +1,13 @@
 
 #include <Arduino.h>
+#include <WiFi.h>
 #include "./v_server.h"
 #include "../v_array_list/v_array_list.h"
 #include "../v_hash_table/v_hash_table.h"
 #include "../v_strings/v_strings.h"
 #include "../v_json/v_json.h"
+#include "../v_route_registry/v_route_registry.h"
+#include "../v_response/v_response.h"
 #include "v_server.h"
 
 #include "../static/static.h"
@@ -12,25 +15,34 @@
 const long TIMEOUT = 2000;
 
 
-VServer::VServer(String ssid, String password,int port) {
+VServer::VServer(String ssid, String password,int port,boolean accessPointMode) {
     this->ssid = ssid;
     this->password = password;
+    this->accessPointMode = accessPointMode;
     this->server = WiFiServer(port);
 }
 
 void VServer::setup() {
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
-    WiFi.begin(this->ssid, this->password);
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
-      Serial.print(".");
+    if (this->accessPointMode) {
+        WiFi.softAP("esp32", "12345678");
+        Serial.println("Access point activated");
+        Serial.print("IP address: ");
+        Serial.println(WiFi.softAPIP());
     }
-    // Print local IP address and start web server
-    Serial.println("");
-    Serial.println("WiFi connected.");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
+    else {
+        Serial.print("Connecting to ");
+        Serial.println(ssid);
+        WiFi.begin(this->ssid, this->password);
+        while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+        }
+        // Print local IP address and start web server
+        Serial.println("");
+        Serial.println("WiFi connected.");
+        Serial.println("IP address: ");
+        Serial.println(WiFi.localIP());
+    }
     this->server.begin();
 }
 
@@ -130,30 +142,12 @@ void VServer::listenToNextClient() {
     VHashTable<String> params;
 
     this->readRequest(client, &method, &url, &headers, &params);
-
     Serial.println("Disconnected");
-    
-    if (url=="/index.js") {
-        client.println("HTTP/1.1 200 OK");
-        client.println("Content-type:"+static_index_js.mime);
-        client.println("Connection: close");
-        client.println(); // The HTTP response starts with blank line
-        client.println(static_index_js.content);
-        client.println(); // The HTTP response ends with another blank line
-        client.stop();
+
+    VResponse resp(&client);
+    if (!VRouteRegistry::handleRequest(url,method,&resp)) {
+        client.println("HTTP/1.1 404 Not Found");
     }
-    else {
-        client.println("HTTP/1.1 200 OK");
-        client.println("Content-type:"+static_index_html.mime);
-        client.println("Connection: close");
-        client.println(); // The HTTP response starts with blank line
-        //client.println("{\"done\":true}");
-        //client.println(method);
-        //client.println(url);
-        //client.println(VJson::stringify(params));
-        client.println(static_index_html.content);
-        //client.println(VJSon::stringify(headers));
-        client.println(); // The HTTP response ends with another blank line
-        client.stop();
-    }
+    client.stop();
+
 }
