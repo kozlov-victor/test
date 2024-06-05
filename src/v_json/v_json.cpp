@@ -2,7 +2,6 @@
 #include <Arduino.h>
 #include "./v_json.h"
 #include "../v_hash_table/v_hash_table.h"
-#include "v_json.h"
 
 /*
 не перевіряємо на помилки

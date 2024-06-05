@@ -11,7 +11,7 @@ void setup() {
     VRouteRegistry::registerRoute("/","GET",[](VResponse* resp){
         resp->writeText(static_index_html.mime,static_index_html.content);
     });
-    VRouteRegistry::registerRoute("/index.js","GET",[](VResponse* resp){
+    VRouteRegistry::registerRoute("/out/index.js","GET",[](VResponse* resp){
         resp->writeText(static_index_js.mime,static_index_js.content);
     });
 }
