@@ -18,7 +18,7 @@ void VResponse::writeText(String mimetype, String resp) {
     this->client->println(); // The HTTP response ends with another blank line
 }
 
-void VResponse::writeJson(VHashTable<String> resp) {
+void VResponse::writeJson(VHashTable<String> &resp) {
     this->client->println("HTTP/1.1 200 Ok");
     this->client->println("Content-type: application/json");
     this->client->println("Connection: close");

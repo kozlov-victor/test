@@ -7,6 +7,7 @@
 #include "../v_strings/v_strings.h"
 #include "../v_json/v_json.h"
 #include "../v_route_registry/v_route_registry.h"
+#include "../v_request/v_request.h"
 #include "../v_response/v_response.h"
 #include "v_server.h"
 
@@ -144,8 +145,9 @@ void VServer::listenToNextClient() {
     this->readRequest(client, &method, &url, &headers, &params);
     Serial.println("Disconnected");
 
+    VRequest req(method, &headers, &params);
     VResponse resp(&client);
-    if (!VRouteRegistry::handleRequest(url,method,&resp)) {
+    if (!VRouteRegistry::handleRequest(url,method,&req,&resp)) {
         client.println("HTTP/1.1 404 Not Found");
     }
     client.stop();

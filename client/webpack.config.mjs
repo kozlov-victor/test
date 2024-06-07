@@ -129,7 +129,7 @@ export default async (env = {})=>{
             },
         },
         optimization: {
-            minimize: false,
+            minimize: true,
             emitOnErrors: false,
         },
     };

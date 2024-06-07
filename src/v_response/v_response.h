@@ -13,7 +13,7 @@ public:
     VResponse(WiFiClient *c);
 
     void writeText(String mimetype, String resp);
-    void writeJson(VHashTable<String> resp);
+    void writeJson(VHashTable<String> &resp);
 
 };
 
