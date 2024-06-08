@@ -1,10 +1,10 @@
-#include "src/v_server/v_server.h"
-#include "src/v_route_registry/v_route_registry.h"
-#include "src/v_request/v_request.h"
-#include "src/v_response/v_response.h"
-#include "src/static/static.h"
+#include "src/server/v_server/v_server.h"
+#include "src/server/v_route_registry/v_route_registry.h"
+#include "src/server/v_request/v_request.h"
+#include "src/server/v_response/v_response.h"
+#include "src/server/static/static.h"
 #include <Preferences.h>
-#include "src/v_hash_table/v_hash_table.h"
+#include "src/server/v_hash_table/v_hash_table.h"
 
 VServer vServer("Lanet_200","Oracle_db12",80,true);
 

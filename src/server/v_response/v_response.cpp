@@ -14,8 +14,7 @@ void VResponse::writeText(String mimetype, String resp) {
     this->client->println("Content-type: " + mimetype);
     this->client->println("Connection: close");
     this->client->println(); // The HTTP response starts with blank line
-    this->client->println(resp);
-    this->client->println(); // The HTTP response ends with another blank line
+    this->client->println(resp);// The HTTP response ends with another blank line
 }
 
 void VResponse::writeJson(VHashTable<String> &resp) {
@@ -23,6 +22,5 @@ void VResponse::writeJson(VHashTable<String> &resp) {
     this->client->println("Content-type: application/json");
     this->client->println("Connection: close");
     this->client->println(); // The HTTP response starts with blank line
-    this->client->println(VJson::stringify(resp));
-    this->client->println(); // The HTTP response ends with another blank line
+    this->client->println(VJson::stringify(resp)); // The HTTP response ends with another blank line
 }
