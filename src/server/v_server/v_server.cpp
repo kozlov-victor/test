@@ -13,7 +13,7 @@
 
 #include "../static/static.h"
 
-const long TIMEOUT = 2000;
+const unsigned long TIMEOUT = 2000;
 
 
 VServer::VServer(String ssid, String password,int port,boolean accessPointMode) {
@@ -47,27 +47,36 @@ void VServer::setup() {
     this->server.begin();
 }
 
-void VServer::readRequest(WiFiClient& client, String *method, String *url, VHashTable<String> *headers, VHashTable<String> *params) {
+void VServer::readRequest(WiFiClient &client, String *method, String *url, VHashTable<String> *headers, VHashTable<String> *params) {
     String currentLine = "";
     boolean isFirstLine = true;
     boolean isBody = false;
     String bodyRaw;
     int contentLengthCnt = 0;
     unsigned long lastTime = millis();
-    boolean broken = false;
+    unsigned long currTime = lastTime;
+    
     while (client.connected()) {
-        if (broken) break;
-        if (millis() - lastTime > TIMEOUT) break;
-        while(client.available()) {
+        currTime = millis();
+        unsigned long delta = currTime - lastTime;
+        if (delta > TIMEOUT) {
+            Serial.printf("currTime=%d\n",currTime);
+            Serial.printf("lastTime=%d\n",lastTime);
+            Serial.printf("delta=%d\n",delta);
+            Serial.println("Connection timeout");
+            break;
+        }
+        if(client.available()) {
             char c = client.read();
-            //Serial.print(String(c));
+            lastTime = millis();
+            Serial.println(String(c) + " " + int(c));
             if (isBody) { // is body, accumulate raw body untill contentLengthCnt is lt contentLength
+                Serial.println("--------------------is body-----------------------------");
                 bodyRaw+=String(c);
                 contentLengthCnt++;
                 String contentLength = headers->get("Content-Length");
                 if (contentLength.length()>0) {
                     if (contentLengthCnt==contentLength.toInt()) {
-                        broken = true;
                         break;
                     }
                 }
@@ -76,7 +85,9 @@ void VServer::readRequest(WiFiClient& client, String *method, String *url, VHash
             if (c=='\n') { // is new line
                 if (currentLine.length()==0) {
                     if (*method=="GET") {
-                        broken = true;
+                        break;
+                    }
+                    if (headers->get("Content-Length")=="0") { // if body is empty
                         break;
                     }
                     isBody = true;
@@ -95,6 +106,7 @@ void VServer::readRequest(WiFiClient& client, String *method, String *url, VHash
             }
         }
     }
+    //Serial.println("bodyRaw = "  + bodyRaw);
     this->parseBody(bodyRaw,params);
 }
 
@@ -143,13 +155,18 @@ void VServer::listenToNextClient() {
     VHashTable<String> params;
 
     this->readRequest(client, &method, &url, &headers, &params);
-    Serial.println("Disconnected");
 
     VRequest req(method, &headers, &params);
     VResponse resp(&client);
     if (!VRouteRegistry::handleRequest(url,method,&req,&resp)) {
+        Serial.println("Not handled");
         client.println("HTTP/1.1 404 Not Found");
+        client.println("Connection: close");
+        client.println("Content-type: text/html");
+        client.println();
+        client.println("<h1>404</h1>");
     }
+    client.flush();  // Ensure all data is sent
     client.stop();
-
+    Serial.println("Client connection closed");
 }

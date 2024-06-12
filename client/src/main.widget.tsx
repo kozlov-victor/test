@@ -9,6 +9,9 @@ export class MainWidget extends DomRootComponent {
     @Reactive.Property()
     private cnt = '0';
 
+    @Reactive.Property()
+    private runtime = '-';
+
     @Reactive.Method()
     private async inc(e:Event) {
         let c = +this.cnt;
@@ -21,6 +24,7 @@ export class MainWidget extends DomRootComponent {
     override async onMounted() {
         super.onMounted();
         this.cnt = (await HttpClient.get<{cnt:string}>('/preferences/cnt')).cnt ?? '0';
+        this.runtime = (await HttpClient.post<{runtime:string}>('/server/info')).runtime ?? '-';
     }
 
     render(): JSX.Element {
@@ -29,6 +33,7 @@ export class MainWidget extends DomRootComponent {
                 <Frame title={'Привіт'}>
                     Ця html - сторінка працює на мікроконтролері ESP32.
                     <div>{this.cnt}</div>
+                    <div>runtime: {this.runtime}</div>
                     <button onclick={this.inc}>click</button>
                 </Frame>
             </>

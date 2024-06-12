@@ -3,9 +3,14 @@
 #include "../v_request/v_request.h"
 #include "../v_response/v_response.h"
 #include "./v_route_registry.h"
+#include "v_route_registry.h"
 
 // Визначення статичного члена класу
 VArrayList<VRouteInfo> VRouteRegistry::routes;
+
+void VRouteRegistry::registerController(VBaseController &ctrl) {
+    ctrl.initRoutes();
+}
 
 void VRouteRegistry::registerRoute(String url, String method, void (*handler)(VRequest*,VResponse*)) {
     VRouteRegistry::routes.add({url, method, handler});

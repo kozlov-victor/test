@@ -3,46 +3,74 @@ import * as fs from 'fs';
 import * as ESLintPlugin from 'eslint-webpack-plugin';
 import {fileURLToPath} from 'url';
 
+const bufferAsCppCode = (buff)=>{
+    const size = Buffer.byteLength(buff);
+    const lines = [`\n    {`];
+    let cnt = 0;
+    for (const x of buff) {
+        lines.push(
+            '0x'+x.toString(16).padStart(2, '0') + (cnt<size-1?', ':'')
+        );
+        cnt++;
+        if (cnt===500) {
+            cnt = 0;
+            lines.push('\n    ');
+        }
+    }
+    lines.push('}');
+    return lines.join('');
+}
+
 const copyResourcesToCpp = ()=>{
-    const indexHtml = fs.readFileSync('./index.html',"utf8");
-    const indexJs = fs.readFileSync('./out/index.js',"utf8");
+    const assetsBin = [];
+    assetsBin.push({
+        buff: fs.readFileSync('./index.html'),
+        name: 'assets_index_html',
+        mime: "text/html",
+    });
+    assetsBin.push({
+        buff: fs.readFileSync('./out/index.js'),
+        name: 'assets_index_js',
+        mime: "application/js",
+    });
+
+    fs.readdirSync('./src/assets').forEach(f => {
+        const buff = fs.readFileSync(`./src/assets/${f}`);
+        assetsBin.push({
+            buff,
+            name:'assets_'+f.replaceAll('.','_'),
+            mime: "image/png",
+        });
+    });
+
     const cppSource =
 `
 #include <Arduino.h>
+#include <stdint.h>  // Додаємо цей заголовок для типів uint8_t, uint16_t тощо
 
 struct V_FILE
 {
     String mime;
-    String content;
+    const uint8_t* buff;
+    size_t size;
 };
 
-
-const V_FILE static_index_html
-(
-    {
-        String("text/html"),
-        String(
-            R"html(
-            ${indexHtml}
-            )html"
-        )    
-    }
-);
-
-const V_FILE static_index_js
-(
-    {
-        String("text/javascript"),
-        String(
-            R"html(
-            ${indexJs}
-            )html"
-        ) 
-    }   
-);
+${assetsBin.map(f=>{
+    return `
+    
+const uint8_t __${f.name}__[] PROGMEM = ${bufferAsCppCode(f.buff)};    
+    
+const V_FILE ${f.name} = 
+{
+    "${f.mime}",
+    __${f.name}__,
+    ${Buffer.byteLength(f.buff)}
+};
+    `;
+}).join('\n')}
 `;
 
-    fs.writeFileSync('../src/static/static.h',cppSource,{encoding:'utf8'});
+    fs.writeFileSync('../src/server/static/static.h',cppSource,{encoding:'utf8'});
 }
 
 class WebpackDonePlugin{
